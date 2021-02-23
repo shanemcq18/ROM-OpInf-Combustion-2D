@@ -54,7 +54,9 @@ def custom_traces(trainsizes, num_modes, regs,
                 for j,var in enumerate(variables):
                     romvar = dproc.getvar(var, traces_pred)
                     gemvar = dproc.getvar(var, traces_gems)
-                    axes[i,j].plot(t, gemvar[j,:], **config.GEMS_STYLE)
+                    axes[i,j].plot(t[:trainsize], gemvar[j,:trainsize],
+                                   **config.GEMS_STYLE) ## only plot training
+                    # axes[i,j].plot(t, gemvar[j,:], **config.GEMS_STYLE)
                     axes[i,j].plot(t[:romvar.shape[1]], romvar[j,:],
                                    **config.ROM_STYLE)
                     axes[i,j].axvline(t[trainsize], lw=2, color='k')
@@ -189,7 +191,7 @@ def traces(trainsize, num_modes, regs,
 def main():
     custom_traces(trainsizes=[      20000,         20000,           20000],
                    num_modes=[         43,            43,              43],
-                        regs=[(5000,5000), (22841,22841), (200000,200000)],
+                        regs=[(5000,5000), (316, 18199), (200000,200000)],
                   variables=["p"],
                   locs=[config.MONITOR_LOCATIONS[1]],
                   loclabels=[2],
