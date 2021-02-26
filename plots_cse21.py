@@ -41,54 +41,71 @@ def traces(trainsize, num_modes, regs,
     utils.save_figure(filename)
 
 
-def averages(trainsize, num_modes, regs,
-             cutoff=60000, filename="spatial_averages.pdf"):
+def averages(trainsize, r, regs, cutoff=60000, filename="spatial_averages.pdf"):
+    """Plot a comparison between OpInf and POD-DEIM.
+    | Feature 1 | | Feature 2 |
+    """
+    # Load the relevant GEMS data.
+    keys = ["O2_sum", "CO2_sum"]
+    assert len(keys) == 2                   # two spatial features.
+    specs_gems, t2 = utils.load_spatial_statistics(keys, k=cutoff)
 
-    # Load GEMS statistical features.
-    keys = ["CH4_sum", "CO2_sum"]
-    features_gems, t = utils.load_spatial_statistics(keys, cutoff)
+    # Get OpInf simulation results and extract relevant data.
+    t_rom, V, scales, q_rom = step4.simulate_rom(trainsize, r, regs, cutoff)
+    with utils.timed_block("Extracting OpInf features"):
+        specs_rom = {k: step4.get_feature(k, q_rom, V, scales) for k in keys}
+
+    # Load POD-DEIM data and extract relevant data.
+    data_deim, t_deim = poddeim.load_data(cols=cutoff)
+    with utils.timed_block("Extracting POD-DEIM features"):
+        lifted_deim = dproc.lift(data_deim)
+        del data_deim
+        specs_deim = {k: step4.get_feature(k, lifted_deim) for k in keys}
 
     # Initialize the figure.
     fig, axes = plt.subplots(1, 2, figsize=(18, 6), sharex=True)
-    axes = np.atleast_2d(axes)
 
-    # Load basis, training data, ROM, then simulate and reconstruct.
-    t, V, scales, q_rom = step4.simulate_rom(trainsize, num_modes, regs,cutoff)
-    with utils.timed_block(f"Processing k={trainsize:d}, r={num_modes:d}"):
-        for ax,key in zip(axes.flat, keys):
-            features_pred = step4.get_feature(key, q_rom, V, scales)
-            ax.plot(t, features_gems[key], **config.GEMS_STYLE)
-            ax.plot(t, features_pred, **config.ROM_STYLE)
-            ax.axvline(t[trainsize], lw=2, color='k')
+    # Plot results.
+    with utils.timed_block("Plotting results"):
 
-    # Format the figure.
-    sep = '\n'
-    ylabels = []
-    for key in keys:
+        # Spatial features: bottom plots.
+        for key, ax in zip(keys, axes.flat):
+            ax.plot(t2, specs_gems[key], **config.GEMS_STYLE)
+            ax.plot(t_deim, specs_deim[key], **poddeim.STYLE)
+            ax.plot(t_rom, specs_rom[key], **config.ROM_STYLE)
+            ax.axvline(t2[trainsize], lw=2, color='k')
+            plots._format_y_axis(ax)
+            plots._format_x_axis(ax)
+
+    fig.tight_layout(rect=[0, .15, 1, 1])
+    fig.subplots_adjust(hspace=.6, wspace=.25)
+
+    # Create the legend, centered at the bottom of the plot.
+    labels = ["GEMS", "POD-DEIM", "OpInf"]
+    plots._format_legend(fig, axes[0], labels)
+
+    # Set titles and labels.
+    for key, ax in zip(keys, axes.flat):
         v,action = key.split('_')
         if action == "sum":
-            ylabels.append(f"{config.VARTITLES[v]} Concentration{sep}"
-                           f"Integral [{config.VARUNITS[v]}]")
+            ax.set_ylabel(f"{config.VARTITLES[v]} Concentration\n"
+                           f"Integral [{config.VARUNITS[v]}]",
+                           fontsize=MEDFONT, labelpad=2)
         elif action == "mean":
-            ylabels.append(f"Spatially Averaged{sep}{config.VARLABELS[v]}")
-
-    plots._format_subplots(fig, axes, [num_modes]*2, ylabels, numbers=False,
-                           ps=filename.endswith(".ps"))
-
-    # Set custom y limits for plots in the publication.
-    for key, ax in zip(keys, axes.flatten()):
+            ax.set_ylabel(f"Spatially Averaged\n{config.VARLABELS[v]}",
+                           fontsize=MEDFONT, labelpad=2)
         if key == "T_mean":
             ax.set_ylim(8.25e2, 1.2e3)
         if key == "CH4_sum":
             ax.set_ylim(1e3, 1.6e3)
         if key == "CO2_sum":
-            ax.set_ylim(35, 105)
+            ax.set_ylim(50, 120)
+            ax.set_yticks([75, 100])
         if key == "O2_sum":
-            ax.set_ylim(1.15e3, 1.6e3)
-            ax.set_yticks([1.2e3, 1.5e3])
+            ax.set_ylim(1.2e3, 1.6e3)
+            ax.set_yticks([1.3e3, 1.5e3])
 
     utils.save_figure(filename)
-
 
 
 # -----------------------------------------------------------------------------
@@ -105,6 +122,7 @@ def main():
 
     traces(20000, 43, (316,18199))
     averages(20000, 43, (316,18199))
+    compare_poddeim(20000, 43, (316,18199))
 
     projection_errors(trainsize=20000, r=43, regs=(316,18199),
                       variables=["p", "T"], cutoff=60000,
@@ -113,5 +131,5 @@ def main():
 
 # =============================================================================
 if __name__ == "__main__":
-    # main()
-    averages(20000, 43, (316,18199))
+    main()
+
