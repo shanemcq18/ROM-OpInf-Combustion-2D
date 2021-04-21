@@ -468,7 +468,7 @@ def main(trainsize, r, regs, elems=None, plotPointTrace=False,
     # Point traces in time.
     if plotPointTrace:
         logging.info("POINT TRACES")
-        point_traces(trainsize, r, regs, elems)
+        point_traces(trainsize, r, regs, elems, cutoff=45000)
 
     # Relative projection / prediction errors in time.
     if plotRelativeErrors:
