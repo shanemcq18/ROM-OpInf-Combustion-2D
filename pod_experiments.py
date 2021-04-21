@@ -497,4 +497,6 @@ if __name__ == "__main__":
     pass
     # main(15000, 100, [1, 4, 16, 64])
     # plot_results(15000)
-    # migrate_data_for_testing(15000, "temporal/sigma_01")
+    migrate_data_for_testing(15000, "temporal/sigma_01")
+    # migrate_data_for_testing(15000, "spatial/sigma_16")
+    # migrate_data_for_testing(15000, "DQs/order_4")
